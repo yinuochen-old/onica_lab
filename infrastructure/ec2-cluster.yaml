@@ -1,0 +1,133 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Creates a EC2 cluster with AutoScalingGroup
+
+Parameters:
+
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type: String
+
+  InstanceType:
+    Description: Which instance type should we use to build the ECS cluster?
+    Type: String
+    Default: t2.micro
+
+  MinSize:
+    Description: Minimum EC2 hosts do you want to deploy
+    Type: Number
+    Default: 2
+
+  MaxSize:
+    Description: Maximum EC2 hosts do you want to deploy
+    Type: Number
+    Default: 4
+
+  VPC:
+    Description: Choose which VPC this ECS cluster should be deployed to
+    Type: AWS::EC2::VPC::Id
+
+  Subnets:
+    Description: Choose which subnets this ECS cluster should be deployed to
+    Type: List<AWS::EC2::Subnet::Id>
+
+  SecurityGroup:
+    Description: Select the Security Group to use for the ECS cluster hosts
+    Type: AWS::EC2::SecurityGroup::Id
+
+Mappings:
+  AWSRegionToAMI:
+    us-east-1:
+      AMI: ami-467ca739
+    us-east-2:
+      AMI: ami-976152f2
+    us-west-1:
+      AMI: ami-46e1f226
+    us-west-2:
+      AMI: ami-6b8cef13
+    eu-west-3:
+      AMI: ami-cae150b7
+    eu-west-2:
+      AMI: ami-c12dcda6
+    eu-west-1:
+      AMI: ami-9cbe9be5
+    eu-central-1:
+      AMI: ami-1b316af0
+    ap-northeast-2:
+      AMI: ami-efaf0181
+    ap-northeast-1:
+      AMI: ami-28ddc154
+    ap-southeast-2:
+      AMI: ami-60a26a02
+    ap-southeast-1:
+      AMI: ami-64260718
+    ap-south-1:
+      AMI: ami-b46f48db
+    ca-central-1:
+      AMI: ami-2f39bf4b
+    sa-east-1:
+      AMI: ami-f09dcc9c
+
+Resources:
+
+  EC2AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+      Properties:
+        VPCZoneIdentifier: !Ref Subnets
+          LaunchConfigurationName: !Ref EC2LaunchConfiguration
+            MinSize: !Ref ClusterSize
+            MaxSize: !Ref ClusterSize
+            DesiredCapacity: !Ref ClusterSize
+            Tags:
+              - Key: Name
+                Value: !Sub ${EnvironmentName} ECS host
+                PropagateAtLaunch: true
+          CreationPolicy:
+            ResourceSignal:
+              Timeout: PT15M
+          UpdatePolicy:
+            AutoScalingRollingUpdate:
+              MinInstancesInService: 1
+              MaxBatchSize: 1
+              PauseTime: PT15M
+              SuspendProcesses:
+                - HealthCheck
+                - ReplaceUnhealthy
+                - AZRebalance
+                - AlarmNotification
+                - ScheduledActions
+              WaitOnResourceSignals: true
+
+  EC2LaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+      Properties:
+        ImageId:  !FindInMap [AWSRegionToAMI, !Ref "AWS::Region", AMI]
+        InstanceType: !Ref InstanceType
+        SecurityGroups:
+          - !Ref SecurityGroup
+        UserData:
+          "Fn::Base64": !Sub |
+            #!/bin/bash
+            yum update -y
+         Metadata:
+          AWS::CloudFormation::Init:
+            configSets:
+              InstallandRun:
+                - Install
+                - Run
+              Install:
+                packages:
+                  yum:
+                    git: []
+                  rpm:
+                    chefdk: https://opscode-omnibus-packages.s3.amazonaws.com/el/6/x86_64/chefdk-0.2.0-2.el6.x86_64.rpm
+              Run:
+                commands:
+                  01_create_chef_repo:
+                    command: "mkdir /opt/chefdk/chef-repo"
+                  02_download_chef_recipe:
+                    command: "git clone https://github.com/yinuochen/wordpresschefrecipe.git",
+                    cwd: "/opt/chefdk/chef-repo"
+                  03_run_chef_client:
+                    command : "chef-client --local-mode webserver.rb"
+                    cwd: "/opt/chefdk/chef-repo/"
