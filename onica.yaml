@@ -12,3 +12,48 @@ Parameters:
     Description: Name of an EC2 KeyPair to enable SSH access to the instance
     Type: AWS::EC2::KeyPair::KeyName
     ConstraintDescription: must be the name of an existing EC2 KeyPair
+
+Resources:
+
+  VPC:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL:
+      Parameters:
+        EnvironmentName:    !Ref AWS::StackName
+        VpcCIDR:            10.0.0.0/16
+        PublicSubnet1CIDR:  10.0.0.0/24
+        PublicSubnet2CIDR:  10.0.1.0/24
+        PrivateSubnet1CIDR: 10.0.10.0/24
+        PrivateSubnet2CIDR: 10.0.11.0/24
+
+  SecurityGroups:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL:
+      Parameters:
+        EnvironmentName: !Ref AWS::StackName
+        VPC: !GetAtt VPC.Outputs.VPC
+
+  ALB:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL:
+      Parameters:
+        EnvironmentName: !Ref AWS::StackName
+        VPC: !GetAtt VPC.Outputs.VPC
+        Subnets: !GetAtt VPC.Outputs.PublicSubnets
+        SecurityGroup: !GetAtt SecurityGroups.Outputs.LoadBalancerSecurityGroup
+
+  EC2:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL:
+      Parameters:
+        EnvironmentName: !Ref AWS::StackName
+        InstanceType: t2.micro
+        MinSize: 2
+        MaxSize: 4
+        VPC: !GetAtt VPC.Outputs.VPC
+        SecurityGroup: !GetAtt SecurityGroups.Outputs.WebServerSecurityGroup
+        Subnets: !GetAtt VPC.Outputs.PrivateSubnets

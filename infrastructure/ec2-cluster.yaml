@@ -9,7 +9,7 @@ Parameters:
     Type: String
 
   InstanceType:
-    Description: Which instance type should we use to build the ECS cluster?
+    Description: Which instance type should we use to build the EC2 cluster?
     Type: String
     Default: t2.micro
 
@@ -24,11 +24,11 @@ Parameters:
     Default: 4
 
   VPC:
-    Description: Choose which VPC this ECS cluster should be deployed to
+    Description: Choose which VPC this EC2 cluster should be deployed to
     Type: AWS::EC2::VPC::Id
 
   Subnets:
-    Description: Choose which subnets this ECS cluster should be deployed to
+    Description: Choose which subnets this EC2 cluster should be deployed to
     Type: List<AWS::EC2::Subnet::Id>
 
   SecurityGroup:
@@ -75,12 +75,12 @@ Resources:
       Properties:
         VPCZoneIdentifier: !Ref Subnets
           LaunchConfigurationName: !Ref EC2LaunchConfiguration
-            MinSize: !Ref ClusterSize
-            MaxSize: !Ref ClusterSize
-            DesiredCapacity: !Ref ClusterSize
+            MinSize: !Ref MinSize
+            MaxSize: !Ref MaxSize
+            DesiredCapacity: !Ref MinSize
             Tags:
               - Key: Name
-                Value: !Sub ${EnvironmentName} ECS host
+                Value: !Sub ${EnvironmentName} EC2 host
                 PropagateAtLaunch: true
           CreationPolicy:
             ResourceSignal:
@@ -126,8 +126,18 @@ Resources:
                   01_create_chef_repo:
                     command: "mkdir /opt/chefdk/chef-repo"
                   02_download_chef_recipe:
-                    command: "git clone https://github.com/yinuochen/wordpresschefrecipe.git",
+                    command: "git clone https://github.com/yinuochen/onica_lab.git",
                     cwd: "/opt/chefdk/chef-repo"
                   03_run_chef_client:
                     command : "chef-client --local-mode webserver.rb"
                     cwd: "/opt/chefdk/chef-repo/"
+
+Outputs:
+
+  Cluster:
+    Description: A reference to the EC2 cluster
+    Value: !Ref EC2Cluster
+
+  EC2AutoScalingGroupName:
+    Description: A reference to EC2 AutoScaling Group Name
+    Value: !Ref EC2AutoScalingGroup
