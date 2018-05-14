@@ -2,18 +2,12 @@ AWSTemplateFormatVersion: 2010-09-09
 
 Description: Master CloudFormation Script to Deploy Onica Stack
 
-Parameters:
-
-  EnvironmentName:
-    Description: An environment name that will be prefixed to resource names
-    Type: String
-
 Resources:
 
   VPC:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL:
+      TemplateURL: https://s3-us-west-2.amazonaws.com/onica-jameschen/infrastructure/vpc.yaml
       Parameters:
         EnvironmentName:    !Ref AWS::StackName
         VpcCIDR:            10.0.0.0/16
@@ -25,7 +19,7 @@ Resources:
   SecurityGroups:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL:
+      TemplateURL: https://s3-us-west-2.amazonaws.com/onica-jameschen/infrastructure/securitygroups.yaml
       Parameters:
         EnvironmentName: !Ref AWS::StackName
         VPC: !GetAtt VPC.Outputs.VPC
@@ -33,7 +27,7 @@ Resources:
   ALB:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL:
+      TemplateURL: https://s3-us-west-2.amazonaws.com/onica-jameschen/infrastructure/loadbalancers.yaml
       Parameters:
         EnvironmentName: !Ref AWS::StackName
         VPC: !GetAtt VPC.Outputs.VPC
@@ -43,7 +37,7 @@ Resources:
   EC2:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL:
+      TemplateURL: https://s3-us-west-2.amazonaws.com/onica-jameschen/infrastructure/ec2-cluster.yaml
       Parameters:
         EnvironmentName: !Ref AWS::StackName
         InstanceType: t2.micro

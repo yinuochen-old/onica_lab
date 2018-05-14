@@ -80,9 +80,6 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
-      Tags:
-        - Key: Name
-          Value: !Ref EnvironmentName
 
   PublicSubnet1:
     Type: AWS::EC2::Subnet

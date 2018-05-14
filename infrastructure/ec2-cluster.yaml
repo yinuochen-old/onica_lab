@@ -109,28 +109,28 @@ Resources:
         "Fn::Base64": !Sub |
           #!/bin/bash
           yum update -y
-      Metadata:
-        AWS::CloudFormation::Init:
-          configSets:
-            InstallandRun:
-              - Install
-              - Run
-            Install:
-              packages:
-                yum:
-                  git: []
-                rpm:
-                  chefdk: https://opscode-omnibus-packages.s3.amazonaws.com/el/6/x86_64/chefdk-0.2.0-2.el6.x86_64.rpm
-            Run:
-              commands:
-                01_create_chef_repo:
-                  command: "mkdir /opt/chefdk/chef-repo"
-                02_download_chef_recipe:
-                  command: "git clone https://github.com/yinuochen/onica_lab.git"
-                  cwd: "/opt/chefdk/chef-repo"
-                03_run_chef_client:
-                  command : "chef-client --local-mode webserver.rb"
-                  cwd: "/opt/chefdk/chef-repo/"
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          InstallandRun:
+            - Install
+            - Run
+          Install:
+            packages:
+              yum:
+                git: []
+              rpm:
+                chefdk: https://opscode-omnibus-packages.s3.amazonaws.com/el/6/x86_64/chefdk-0.2.0-2.el6.x86_64.rpm
+          Run:
+            commands:
+              01_create_chef_repo:
+                command: "mkdir /opt/chefdk/chef-repo"
+              02_download_chef_recipe:
+                command: "git clone https://github.com/yinuochen/onica_lab.git"
+                cwd: "/opt/chefdk/chef-repo"
+              03_run_chef_client:
+                command : "chef-client --local-mode webserver.rb"
+                cwd: "/opt/chefdk/chef-repo/"
 
 Outputs:
 

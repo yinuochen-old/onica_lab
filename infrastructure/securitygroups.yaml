@@ -14,31 +14,34 @@ Parameters:
 
 Resources:
 
-  WebServerSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Enable HTTP access via port 80 through the LoadBalancer
-      SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: 80
-        ToPort: 80
-      SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
-      Tags:
-        - Key: Name
-          Value: !Sub ${EnvironmentName}-EC2-Hosts
-
   LoadBalancerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref VPC
       GroupDescription: Access to the load balancer that sits in front of EC2
       SecurityGroupIngress:
-        # Allow access from anywhere to our ECS services
+        # Allow access from anywhere to our EC2 services
         - CidrIp: 0.0.0.0/0
           IpProtocol: -1
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName}-LoadBalancers
+
+  WebServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: Enable HTTP access via port 80 through the LoadBalancer
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-EC2-Hosts
+
+
 
 Outputs:
 
