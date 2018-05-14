@@ -8,11 +8,6 @@ Parameters:
     Description: An environment name that will be prefixed to resource names
     Type: String
 
-  KeyName:
-    Description: Name of an EC2 KeyPair to enable SSH access to the instance
-    Type: AWS::EC2::KeyPair::KeyName
-    ConstraintDescription: must be the name of an existing EC2 KeyPair
-
 Resources:
 
   VPC:

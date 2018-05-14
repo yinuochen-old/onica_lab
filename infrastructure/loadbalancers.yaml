@@ -47,6 +47,10 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       Name: !Sub ${EnvironmentName}-default
+      HealthCheckPath: "/var/www/html/index.html"
+      HealthCheckIntervalSeconds: 10
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
       VpcId: !Ref VPC
       Port: 80
       Protocol: HTTP

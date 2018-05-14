@@ -72,71 +72,67 @@ Resources:
 
   EC2AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
-      Properties:
-        VPCZoneIdentifier: !Ref Subnets
-          LaunchConfigurationName: !Ref EC2LaunchConfiguration
-            MinSize: !Ref MinSize
-            MaxSize: !Ref MaxSize
-            DesiredCapacity: !Ref MinSize
-            Tags:
-              - Key: Name
-                Value: !Sub ${EnvironmentName} EC2 host
-                PropagateAtLaunch: true
-          CreationPolicy:
-            ResourceSignal:
-              Timeout: PT15M
-          UpdatePolicy:
-            AutoScalingRollingUpdate:
-              MinInstancesInService: 1
-              MaxBatchSize: 1
-              PauseTime: PT15M
-              SuspendProcesses:
-                - HealthCheck
-                - ReplaceUnhealthy
-                - AZRebalance
-                - AlarmNotification
-                - ScheduledActions
-              WaitOnResourceSignals: true
+    Properties:
+      VPCZoneIdentifier: !Ref Subnets
+      LaunchConfigurationName: !Ref EC2LaunchConfiguration
+      MinSize: !Ref MinSize
+      MaxSize: !Ref MaxSize
+      DesiredCapacity: !Ref MinSize
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} EC2 host
+          PropagateAtLaunch: true
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: 1
+        MaxBatchSize: 1
+        PauseTime: PT15M
+        SuspendProcesses:
+          - HealthCheck
+          - ReplaceUnhealthy
+          - AZRebalance
+          - AlarmNotification
+          - ScheduledActions
+        WaitOnResourceSignals: true
 
   EC2LaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
-      Properties:
-        ImageId:  !FindInMap [AWSRegionToAMI, !Ref "AWS::Region", AMI]
-        InstanceType: !Ref InstanceType
-        SecurityGroups:
-          - !Ref SecurityGroup
-        UserData:
-          "Fn::Base64": !Sub |
-            #!/bin/bash
-            yum update -y
-         Metadata:
-          AWS::CloudFormation::Init:
-            configSets:
-              InstallandRun:
-                - Install
-                - Run
-              Install:
-                packages:
-                  yum:
-                    git: []
-                  rpm:
-                    chefdk: https://opscode-omnibus-packages.s3.amazonaws.com/el/6/x86_64/chefdk-0.2.0-2.el6.x86_64.rpm
-              Run:
-                commands:
-                  01_create_chef_repo:
-                    command: "mkdir /opt/chefdk/chef-repo"
-                  02_download_chef_recipe:
-                    command: "git clone https://github.com/yinuochen/onica_lab.git",
-                    cwd: "/opt/chefdk/chef-repo"
-                  03_run_chef_client:
-                    command : "chef-client --local-mode webserver.rb"
-                    cwd: "/opt/chefdk/chef-repo/"
+    Properties:
+      ImageId:  !FindInMap [AWSRegionToAMI, !Ref "AWS::Region", AMI]
+      InstanceType: !Ref InstanceType
+      SecurityGroups:
+        - !Ref SecurityGroup
+      UserData:
+        "Fn::Base64": !Sub |
+          #!/bin/bash
+          yum update -y
+      Metadata:
+        AWS::CloudFormation::Init:
+          configSets:
+            InstallandRun:
+              - Install
+              - Run
+            Install:
+              packages:
+                yum:
+                  git: []
+                rpm:
+                  chefdk: https://opscode-omnibus-packages.s3.amazonaws.com/el/6/x86_64/chefdk-0.2.0-2.el6.x86_64.rpm
+            Run:
+              commands:
+                01_create_chef_repo:
+                  command: "mkdir /opt/chefdk/chef-repo"
+                02_download_chef_recipe:
+                  command: "git clone https://github.com/yinuochen/onica_lab.git"
+                  cwd: "/opt/chefdk/chef-repo"
+                03_run_chef_client:
+                  command : "chef-client --local-mode webserver.rb"
+                  cwd: "/opt/chefdk/chef-repo/"
 
 Outputs:
-
-  Cluster:
-    Description: A reference to the EC2 cluster
-    Value: !Ref EC2Cluster
 
   EC2AutoScalingGroupName:
     Description: A reference to EC2 AutoScaling Group Name
