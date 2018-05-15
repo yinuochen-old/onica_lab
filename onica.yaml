@@ -24,26 +24,17 @@ Resources:
         EnvironmentName: !Ref AWS::StackName
         VPC: !GetAtt VPC.Outputs.VPC
 
-  ALB:
+  EC2WithLoadBalancers:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3-us-west-2.amazonaws.com/onica-jameschen/infrastructure/loadbalancers.yaml
+      TemplateURL: https://s3-us-west-2.amazonaws.com/onica-jameschen/infrastructure/ec2withloadbalancers.yaml
       Parameters:
         EnvironmentName: !Ref AWS::StackName
         VPC: !GetAtt VPC.Outputs.VPC
-        Subnets: !GetAtt VPC.Outputs.PublicSubnets
-        SecurityGroup: !GetAtt SecurityGroups.Outputs.LoadBalancerSecurityGroup
-
-  EC2:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: https://s3-us-west-2.amazonaws.com/onica-jameschen/infrastructure/ec2-cluster.yaml
-      Parameters:
-        EnvironmentName: !Ref AWS::StackName
+        PrivateSubnets: !GetAtt VPC.Outputs.PrivateSubnets
+        PublicSubnets: !GetAtt VPC.Outputs.PublicSubnets
+        LoadBalancerSecurityGroup: !GetAtt SecurityGroups.Outputs.LoadBalancerSecurityGroup
+        WebServerSecurityGroup: !GetAtt SecurityGroups.Outputs.WebServerSecurityGroup
         InstanceType: t2.micro
         MinSize: 2
         MaxSize: 4
-        VPC: !GetAtt VPC.Outputs.VPC
-        SecurityGroup: !GetAtt SecurityGroups.Outputs.WebServerSecurityGroup
-        Subnets: !GetAtt VPC.Outputs.PrivateSubnets
-        TargetGroup: !GetAtt ALB.Outputs.TargetGroup

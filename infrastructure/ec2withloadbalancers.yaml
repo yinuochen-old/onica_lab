@@ -1,0 +1,192 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Creates the Load Balancers and Auto Scaling Groups for our Stack
+
+Parameters:
+
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type: String
+
+  VPC:
+    Type: AWS::EC2::VPC::Id
+    Description: Choose which VPC the Application Load Balancer should be deployed to
+
+  PrivateSubnets:
+    Description: Choose which subnets the Application Load Balancer should be deployed to
+    Type: List<AWS::EC2::Subnet::Id>
+
+  PublicSubnets:
+    Description: Choose which subnets this EC2 cluster should be deployed to
+    Type: List<AWS::EC2::Subnet::Id>
+
+  WebServerSecurityGroup:
+    Description: Select the Security Group to apply to the Application Load Balancer
+    Type: AWS::EC2::SecurityGroup::Id
+
+  LoadBalancerSecurityGroup:
+    Description: Select the Security Group to apply to the Application Load Balancer
+    Type: AWS::EC2::SecurityGroup::Id
+
+  InstanceType:
+    Description: Which instance type should we use to build the EC2 cluster?
+    Type: String
+    Default: t2.micro
+
+  MinSize:
+    Description: Minimum EC2 hosts do you want to deploy
+    Type: Number
+    Default: 2
+
+  MaxSize:
+    Description: Maximum EC2 hosts do you want to deploy
+    Type: Number
+    Default: 4
+
+Mappings:
+  AWSRegionToAMI:
+    us-east-1:
+      AMI: ami-467ca739
+    us-east-2:
+      AMI: ami-976152f2
+    us-west-1:
+      AMI: ami-46e1f226
+    us-west-2:
+      AMI: ami-6b8cef13
+    eu-west-3:
+      AMI: ami-cae150b7
+    eu-west-2:
+      AMI: ami-c12dcda6
+    eu-west-1:
+      AMI: ami-9cbe9be5
+    eu-central-1:
+      AMI: ami-1b316af0
+    ap-northeast-2:
+      AMI: ami-efaf0181
+    ap-northeast-1:
+      AMI: ami-28ddc154
+    ap-southeast-2:
+      AMI: ami-60a26a02
+    ap-southeast-1:
+      AMI: ami-64260718
+    ap-south-1:
+      AMI: ami-b46f48db
+    ca-central-1:
+      AMI: ami-2f39bf4b
+    sa-east-1:
+      AMI: ami-f09dcc9c
+
+Resources:
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Ref EnvironmentName
+      Subnets: !Ref PublicSubnets
+      SecurityGroups:
+        - !Ref LoadBalancerSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Ref EnvironmentName
+
+  LoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref DefaultTargetGroup
+
+  DefaultTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub ${EnvironmentName}-default
+      HealthCheckPath: "/index.html"
+      HealthCheckIntervalSeconds: 10
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      VpcId: !Ref VPC
+      Port: 80
+      Protocol: HTTP
+
+  EC2AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Ref PrivateSubnets
+      LaunchConfigurationName: !Ref EC2LaunchConfiguration
+      MinSize: !Ref MinSize
+      MaxSize: !Ref MaxSize
+      DesiredCapacity: !Ref MinSize
+      TargetGroupARNs:
+        - !Ref DefaultTargetGroup
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} EC2 host
+          PropagateAtLaunch: true
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: 1
+        MaxBatchSize: 1
+        PauseTime: PT15M
+        SuspendProcesses:
+          - HealthCheck
+          - ReplaceUnhealthy
+          - AZRebalance
+          - AlarmNotification
+          - ScheduledActions
+        WaitOnResourceSignals: true
+
+  EC2LaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId:  !FindInMap [AWSRegionToAMI, !Ref "AWS::Region", AMI]
+      InstanceType: !Ref InstanceType
+      SecurityGroups:
+        - !Ref WebServerSecurityGroup
+      UserData:
+        "Fn::Base64": !Sub |
+          #!/bin/bash
+          yum update -y
+          /opt/aws/bin/cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource EC2LaunchConfiguration
+          /opt/aws/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource EC2AutoScalingGroup
+    Metadata:
+      AWS::CloudFormation::Init:
+        config:
+          packages:
+            yum:
+              git: []
+            rpm:
+              chefdk: https://opscode-omnibus-packages.s3.amazonaws.com/el/6/x86_64/chefdk-0.2.0-2.el6.x86_64.rpm
+          commands:
+            01_create_chef_repo:
+              command: "mkdir /opt/chefdk/chef-repo"
+            02_download_chef_recipe:
+              command: "git clone https://github.com/yinuochen/onica_lab.git"
+              cwd: "/opt/chefdk/chef-repo"
+            03_run_chef_client:
+              command : "chef-client --local-mode webserver.rb"
+              cwd: "/opt/chefdk/chef-repo/onica_lab"
+
+
+Outputs:
+
+  LoadBalancer:
+    Description: A reference to the Application Load Balancer
+    Value: !Ref LoadBalancer
+
+  LoadBalancerUrl:
+    Description: The URL of the ALB
+    Value: !GetAtt LoadBalancer.DNSName
+
+  Listener:
+    Description: A reference to a port 80 listener
+    Value: !Ref LoadBalancerListener
+
+  TargetGroup:
+    Description: Target group for the ALB
+    Value: !Ref DefaultTargetGroup
