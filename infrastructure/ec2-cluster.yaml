@@ -35,6 +35,10 @@ Parameters:
     Description: Select the Security Group to use for the ECS cluster hosts
     Type: AWS::EC2::SecurityGroup::Id
 
+  TargetGroup:
+    Description: Target group for the ALB
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup::Id
+
 Mappings:
   AWSRegionToAMI:
     us-east-1:
@@ -78,6 +82,7 @@ Resources:
       MinSize: !Ref MinSize
       MaxSize: !Ref MaxSize
       DesiredCapacity: !Ref MinSize
+      TargetGroupArn: !Ref TargetGroup
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} EC2 host
@@ -130,7 +135,7 @@ Resources:
                 cwd: "/opt/chefdk/chef-repo"
               03_run_chef_client:
                 command : "chef-client --local-mode webserver.rb"
-                cwd: "/opt/chefdk/chef-repo/"
+                cwd: "/opt/chefdk/chef-repo/onica_lab"
 
 Outputs:
 
