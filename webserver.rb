@@ -1,3 +1,9 @@
+require 'net/http'
+require 'uri'
+
+uri = URI.parse("http://169.254.169.254/latest/meta-data/local-hostname/")
+response = Net::HTTP.get_response(uri)
+
 package 'httpd'
 
 service 'httpd' do
@@ -14,7 +20,7 @@ file '/var/www/html/index.html' do
 <meta http-equiv=\"Content-Type\" content=\"text/html;charset=ISO-8859-1\">
 </head>
 <body>
-<h1>Hello World <script>document.write(document.location.hostname)</script></h1>
+<h1>Hello World #{response}</h1>
 </body>
 </html>
 '
