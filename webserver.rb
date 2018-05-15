@@ -1,9 +1,3 @@
-require 'net/http'
-require 'uri'
-
-uri = URI.parse("http://169.254.169.254/latest/meta-data/local-hostname/")
-response = Net::HTTP.get_response(uri)
-
 package 'httpd'
 
 service 'httpd' do
