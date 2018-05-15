@@ -11,7 +11,7 @@ service 'httpd' do
 end
 
 file '/var/www/html/index.html' do
-  content '
+  content "
 <!DOCTYPE html>
 
 <html>
@@ -20,10 +20,10 @@ file '/var/www/html/index.html' do
 <meta http-equiv=\"Content-Type\" content=\"text/html;charset=ISO-8859-1\">
 </head>
 <body>
-<h1>Hello World #{response}</h1>
+<h1>Hello World #{node['hostname']}</h1>
 </body>
 </html>
-'
+"
   mode '0755'
   owner 'apache'
   group 'apache'
